@@ -89,9 +89,9 @@ function getlocation(city) {
     let safevalues=[city];
     return client.query(SQL,safevalues)
     .then(results=>{
-        if(results.count)
+        if(results.rows.length)
         {
-            return results.row[0];
+            return results.rows[0];
         }
         else
         {
@@ -107,19 +107,18 @@ function getlocation(city) {
           let safevalues=[city,locationData.formatted_query,lat,lon];
          return client.query(SQL,safevalues)
           .then(results=>{
-              results.rows[0];
+             return results.rows[0];
 
           })
         //   return locationData;
 
         })
-        .catch(error=>errorHandler(error));
  
         }
         // res.status(200).json(result.rows);
     })
 
-   
+    .catch(error=>errorHandler(error));   
 }
 function Location(city,LocData) {
     this.search_query = city;
@@ -161,7 +160,7 @@ function notFoundHandler(request,response) {
 }
 
 function errorHandler(error, request, response) {
-    response.status(500).send(error);
+    console.log(error);
 }
 client.connect()
 .then(()=>{
