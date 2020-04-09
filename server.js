@@ -1,24 +1,16 @@
 'use strict';
-const superagent = require('superagent');
-
-const express = require('express');
-
-const cors = require('cors');
-
-
 require('dotenv').config();
+const superagent = require('superagent');
+const express = require('express');
+const cors = require('cors');
+const pg=require("pg");
+const client=new  pg.Client(process.env.DATABASE_URL2);
 
 const PORT = process.env.PORT || 3000;
-const server = express();
+const app = express();
 
-server.use(cors());
-
-server.listen(PORT, () => {
-    console.log(`Listening on PORT${PORT}`);
-})
-
-
-server.get('/location',locationhandler) 
+app.use(cors());
+app.get('/location',locationhandler) 
 
 function locationhandler(req, res) {
        // const geoorphicalData = require('./data/geo.json');
@@ -30,7 +22,7 @@ function locationhandler(req, res) {
         .then(locationData => res.status(200).json(locationData));
 }
  
-server.get('/weather', weatherhandler)
+app.get('/weather', weatherhandler)
 function weatherhandler(req, res) {
     const city = req.query.search_query;
     //     var weatherarr=[];
@@ -40,12 +32,13 @@ function weatherhandler(req, res) {
     //              weatherarr.push(weather);
     //     })
     // res.send(weatherarr);
+    console.log(city);
      getwather(city)
         .then(weatherData => res.status(200).json(weatherData));
 }
 
 
-server.get('/trails',hikeshandler) 
+app.get('/trails',hikeshandler) 
 function hikeshandler(req,res)
 {
     const city=req.query.search_query;
@@ -57,12 +50,12 @@ function hikeshandler(req,res)
 
 }
 
+
 function gethikes(citycoirdantes)
 {
     let key=process.env.TRAIL_API_KEY;
     const Url = `https://www.hikingproject.com/data/get-trails?lat=${citycoirdantes.latitude}&lon=${citycoirdantes.longitude}&maxDistance=10&key=${key}`;
-    // console.log(Url);
-    // console.log('asdsadhaskj',citycoirdantes);
+ 
     return superagent.get(Url)
     .then(hikeData => {
        return hikeData.body.trails.map(val => {
@@ -77,24 +70,56 @@ function getwather(city) {
     let key = process.env.weatherAPI;
     const watherinfo=[];    
     const Url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${city}&key=${key}`;
+    console.log('asdasdasdsa',Url);
     return superagent.get(Url)
     .then(weatherData => {
         weatherData.body.data.map(val => {
           var weatherData = new Weather(val);
           watherinfo.push(weatherData);
+          console.log(weatherData,city);
         });
         return watherinfo;
 
         });
 }
+var lat;
+var lon;
 function getlocation(city) {
+    let SQL='SELECT * FROM location WHERE  search_query=$1;';
+    let safevalues=[city];
+    return client.query(SQL,safevalues)
+    .then(results=>{
+        if(results.count)
+        {
+            return results.row[0];
+        }
+        else
+        {
+            console.log(city);
     let key = process.env.GEOCODE_API_KEY;
     const Url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
     return superagent.get(Url)
     .then(geodata => {
+        let SQL='INSERT INTO location(search_query,formatted_query,latitude,longitude)VALUES($1,$2,$3,$4);';
           var locationData = new Location(city,geodata.body);
-        return locationData;
-        });
+          lat=locationData.latitude;
+          lon=locationData.longitude;
+          let safevalues=[city,locationData.formatted_query,lat,lon];
+         return client.query(SQL,safevalues)
+          .then(results=>{
+              results.rows[0];
+
+          })
+        //   return locationData;
+
+        })
+        .catch(error=>errorHandler(error));
+ 
+        }
+        // res.status(200).json(result.rows);
+    })
+
+   
 }
 function Location(city,LocData) {
     this.search_query = city;
@@ -121,10 +146,26 @@ function Hikes(hike) {
     this.condition_time=hike.condition_time;
 
 }
-server.use('*', (req, res) => {
+
+
+app.use('*', (req, res) => {
     res.status(404).send('NOT FOUND');
 });
 
-server.use((error, req, res) => {
-    res.status(500).send(error);
-})
+app.get('*', notFoundHandler);
+
+app.use(errorHandler);
+
+function notFoundHandler(request,response) { 
+    response.status(404).send('huh????');
+}
+
+function errorHandler(error, request, response) {
+    response.status(500).send(error);
+}
+client.connect()
+.then(()=>{
+    app.listen(PORT, () => {
+        console.log(`Listening on PORT${PORT}`);
+    })
+});
