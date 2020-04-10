@@ -145,8 +145,72 @@ function Hikes(hike) {
     this.condition_time=hike.condition_time;
 
 }
+app.get('/movies',moviesHandler) 
+function moviesHandler(request, response) {
+    let movie = request.query.search_query;
+    getMovies(movie)
+      .then(moviesData => {
+        response.status(200).json(moviesData);
+      });
+  }
+  
+  function getMovies(movie) {
+    let moviearray=[];
+    let key = process.env.MOVIE_API_KEY;
+    let url = `https://api.themoviedb.org/3/search/movie?api_key=${key}&query=${movie}`;
+    return superagent.get(url)
+      .then((moviesData) => {
+        moviesData.body.results.map((movies) => {
+         let movieobject= new Movie(movies);
+         moviearray.push(movieobject);
+        });
+        return moviearray;
+      })
+    // .catch(err => errorHandler(err, request, response));
+  };
+  
+  
+  app.get('/yelp',yelphandler);
+  function yelphandler(request,response)
+  {
+    const city=req.query.search_query;
+    getlocation(city)
+    .then((data)=>{
+      return getyelp(data)
+      .then(yelpData => res.status(200).send(yelpData));
+  })
+  }
 
-
+  function getyelp(resturant)
+  {
+    let key=process.env.YELP_API_KEY;
+  let resturantarr=[];
+    let url = `https://api.yelp.com/v3/businesses/search?categories=restaurants&latitude=${resturant.latitude}&longitude=${query.longitude}&limit=20`;
+    return superagent.get(url)
+    .set('Authorization', `Bearer ${key}`)
+    .then( res => {
+      return res.body.businesses.map( (val) => {
+        resturantarr.push(new Restaurant(val));
+        return resturantarr;
+      });
+    })
+  }
+function Movie(movie) {
+    this.title = movie.title;
+    this.overview = movie.overview;
+    this.average_votes = movie.average_votes;
+    this.total_votes = movie.total_votes;
+    this.image_url = `https://image.tmdb.org/t/p/w500/${movie.poster_path}`;
+    this.popularity = movie.popularity;
+    this.released_on = movie.released_on;
+  }
+function Restaurant(restaurant) {
+  this.name = restaurant.name;
+  this.image_url = restaurant.image_url;
+  this.price = restaurant.price;
+  this.rating = restaurant.rating;
+  this.url = restaurant.url;
+}
 app.use('*', (req, res) => {
     res.status(404).send('NOT FOUND');
 });
