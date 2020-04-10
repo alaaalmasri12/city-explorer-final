@@ -1,9 +1,9 @@
-DROP TABLE IF EXISTS location;
+DROP TABLE IF EXISTS users;
 
-CREATE TABLE location (
+CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    search_query VARCHAR(255),
-    formatted_query VARCHAR(255),
-    latitude float,
-    longitude float
+    first_name VARCHAR(255),
+    last_name VARCHAR(255)
 );
+
+INSERT INTO users (first_name,last_name) VALUES ('Bushra','Bilal');
