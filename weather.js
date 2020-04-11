@@ -1,7 +1,10 @@
 'use strict'
 const superagent = require('superagent');
-const pg=require("pg");
+require('dotenv').config();
+const cors = require('cors');
 const express = require('express');
+const pg=require("pg");
+const client=new  pg.Client(process.env.DATABASE_URL2);
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -18,9 +21,9 @@ function weatherhandler(req, res) {
     console.log(city);
      getwather(city)
         .then(weatherData => res.status(200).json(weatherData));
-}
-
-function getwather(city) {
+  }
+  
+  function getwather(city) {
     let key = process.env.weatherAPI;
     const watherinfo=[];    
     const Url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${city}&key=${key}`;
@@ -33,7 +36,8 @@ function getwather(city) {
           console.log(weatherData,city);
         });
         return watherinfo;
-
+  
         });
-}
+  }
+  
 module.exports=weatherhandler;
